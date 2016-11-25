@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.EventsMapper">
+
+    <select id="selectAll" resultType="studyMate.dto.Events">
+        SELECT *
+        FROM StudyMate.dbo.[Events]
+    </select>
+    
+    <insert id="insertUserSchedule" useGeneratedKeys="true" keyProperty="event_id" >
+        INSERT INTO StudyMate.dbo.[Events] (title, start, [end])
+        	VALUES (#{title}, #{start}, #{end})
+    </insert>
+
+    
+    
+	<delete id="deleteByIdx">
+	    SET NOCOUNT ON;
+  		SET XACT_ABORT ON
+  			
+    	BEGIN TRANSACTION
+	    DELETE FROM StudyMate.dbo.[Events] WHERE event_id = #{event_id}
+	    
+	    COMMIT TRANSACTION
+	</delete>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+</mapper>
+

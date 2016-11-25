@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.StreamMapper">
+
+		<insert id="insert" > <!-- 삽입코드 -->
+		    insert into [Stream](title,contents,userIdx,studyGroupIdx,fileName,fileTime,route) 
+		    values(#{title},#{contents},#{userIdx},#{studyGroupIdx},#{fileName},GETDATE(),#{route})
+		</insert>
+		
+		
+		<select id="StreamPage" resultType="studyMate.dto.Stream"> <!-- [10월6일수정] -->
+		
+	 <![CDATA[
+        	SELECT *
+        	FROM
+        		(SELECT s.idx as idx,s.title as title,s.contents as contents,s.userIdx as userIdx,s.studyGroupIdx as studyGroupIdx,s.fileName as fileName,s.fileTime as fileTime,s.route as route ,a.imageRoute as imageRoute ,a.name as name,a.loginId as loginId ,ROW_NUMBER() 
+				OVER (ORDER BY s.idx DESC) 행번호
+     	   		FROM (StudyMate.[dbo].[Stream] s JOIN (select i.route as imageRoute,u.loginId,u.name,i.userIdx as imageUserIdx from StudyMate.[dbo].[Image] i JOIN StudyMate.[dbo].[User] u ON i.userIdx=u.idx) a
+						ON s.userIdx = a.imageUserIdx)
+        		WHERE
+        			((#{srchType} = 0 AND studyGroupIdx=#{idx}) OR
+            		(#{srchType} = 1 AND CHARINDEX(#{srchText}, loginId) > 0 AND studyGroupIdx=#{idx}) OR
+            		(#{srchType} = 2 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, name) > 0 AND studyGroupIdx=#{idx})OR
+            		(#{srchType} = 3 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, title) > 0 AND studyGroupIdx=#{idx})
+            	)) subquery
+        WHERE 행번호 > (#{currentPage} - 1) * #{pageSize} AND 행번호 <= #{currentPage} * #{pageSize} ORDER BY 행번호 
+        	
+        ]]>
+
+		
+		</select>
+		<!-- 전체 레코드 갯수 -->
+		<select id="StreamCount" resultType="int"> <!-- [10월6일수정] -->
+			
+		 <![CDATA[
+  	    	SELECT COUNT(*) FROM (StudyMate.[dbo].[Stream] s JOIN (select i.route as imageRoute,u.loginId,u.name,i.userIdx as imageUserIdx from StudyMate.[dbo].[Image] i JOIN StudyMate.[dbo].[User] u ON i.userIdx=u.idx) a
+						ON s.userIdx = a.imageUserIdx)
+  	    	WHERE 
+  	    		 (#{srchType} = 0 AND s.studyGroupIdx=#{idx}) OR
+  	    		 (#{srchType} = 1 AND CHARINDEX(#{srchText},a.loginId) > 0 AND s.studyGroupIdx=#{idx}) OR
+  	    		 (#{srchType} = 2 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, a.name ) > 0 AND s.studyGroupIdx=#{idx})OR
+  	    		 (#{srchType} = 3 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, s.title ) > 0 AND s.studyGroupIdx=#{idx})
+  	    ]]>	
+	
+		</select>
+		<select id="StreamDetailPage" resultType="studyMate.dto.Stream">
+			
+		 <![CDATA[
+  	    	SELECT * FROM [Stream] where idx=#{idx}
+
+  	    ]]>	
+		
+		</select>
+		
+		<select id="selectStream" resultType="studyMate.dto.Stream">
+			
+		 <![CDATA[
+  	    	SELECT * FROM [Stream] where fileName=#{fileName}
+
+  	    ]]>	
+		
+		</select>
+		
+		<select id="selectIdxStream" resultType="studyMate.dto.Stream"><!-- [10월19일 수정] -->
+			
+		 <![CDATA[
+		  SELECT TOP 20 s.idx as idx,title,contents,userIdx,studyGroupIdx,fileName,fileTime,route,u.name as userName 
+		  FROM (StudyMate.[dbo].[Stream] s JOIN  StudyMate.dbo.[User] u ON u.idx = s.userIdx)
+  	   	  WHERE studyGroupIdx=#{studyGroupIdx}
+  	   	  ORDER BY NEWID()  	    	
+  	    ]]>	
+		
+		</select>
+		
+		<delete id="streamDelete">
+		
+		DELETE FROM [Stream] where idx=#{idx}
+		
+		</delete>
+
+		
+</mapper>
+

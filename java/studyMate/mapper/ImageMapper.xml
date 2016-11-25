@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.ImageMapper">
+
+	
+	<select id="show" resultType="studyMate.dto.Image">
+        <![CDATA[
+			select * from [Image] where userIdx=#{userIdx}
+    	]]>
+	</select>
+	
+	<select id="allShow" resultType="studyMate.dto.Image">
+        <![CDATA[
+			select * from [Image]
+    	]]>
+	</select>
+
+		<insert id="fileUpload" >
+		     INSERT INTO [Image](userIdx,originalfileName,fileName,fileSize,fileTime,data,route) VALUES(#{userIdx},#{originalfileName},#{fileName},#{fileSize},GETDATE(),#{data},#{route})
+		</insert>
+		
+		<update id="fileUpdate" >
+		     update [Image] set originalfileName=#{originalfileName} ,fileName=#{fileName},fileSize=#{fileSize},data=#{data},fileTime=GETDATE(),route=#{route}  where userIdx=#{userIdx}
+		</update>
+		
+		<update id="setIdx" >
+		     update [Image] set userIdx=#{userIdx} where userIdx=1111
+		</update>
+		
+		<delete id="fileDelete" >
+		     delete from [Image] where userIdx=#{userIdx}
+		</delete>
+		
+		<insert id="insert" ><!-- [10월 17일 추가] -->
+		     INSERT INTO [StudyGroupImage](studyGroupIdx,studyGroupName,fileName,data,fileTime,route,fileSize) VALUES(#{studyGroupIdx},#{studyGroupName},#{fileName},#{data},GETDATE(),#{route},#{fileSize})
+		</insert>
+		
+		<select id="StudyAllShow" resultType="studyMate.dto.StudyGroupImage">
+        <![CDATA[
+			select * from [StudyGroupImage]
+    	]]>
+		</select>
+		
+		<select id="selectStudyImage" resultType="studyMate.dto.StudyGroupImage">
+        <![CDATA[
+			select * from [StudyGroupImage] where studyGroupIdx=#{studyGroupIdx}
+    	]]>
+		</select>
+		
+		<select id="StreamAllShow" resultType="studyMate.dto.StreamImage">
+        <![CDATA[
+			select * from [StreamImage]
+    	]]>
+		</select>
+		
+		<insert id="streamInsert" ><!-- [10월 18일 추가] -->
+		     INSERT INTO [StreamImage](streamIdx,streamTitle,fileName,data,fileTime,route,fileSize,studyGroupIdx,streamUserIdx) VALUES(#{streamIdx},#{streamTitle},#{fileName},#{data},GETDATE(),#{route},#{fileSize},#{studyGroupIdx},#{streamUserIdx})
+		</insert>
+	
+	<select id="selectStreamImage" resultType="studyMate.dto.StreamImage"><!-- [10월 19일 추가] -->
+        <![CDATA[
+         select i.idx as idx,streamIdx,streamTitle,fileName,data,fileTime,route,fileSize,studyGroupIdx,streamUserIdx,u.name as streamUserName 
+         from (StudyMate.[dbo].[StreamImage] i JOIN  StudyMate.dbo.[User] u ON u.idx = i.streamUserIdx)
+         where studyGroupIdx=#{studyGroupIdx}
+    	]]>
+		</select>
+		
+		<select id="selectImage" resultType="studyMate.dto.StreamImage">
+        <![CDATA[
+			select * from [StreamImage] where streamIdx=#{idx}
+    	]]>
+		</select>
+		
+		
+</mapper>
+

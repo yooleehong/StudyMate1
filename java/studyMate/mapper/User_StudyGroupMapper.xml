@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.User_StudyGroupMapper">
+
+    <!-- 회원이 스터디 그룹을 만들면 조장으로 insert -->
+    <insert id="insert">
+        <![CDATA[
+        	INSERT INTO StudyMate.dbo.[User_StudyGroup] ([userIdx],[studyGroupIdx], [memberType])
+        	VALUES (#{userIdx}, #{studyGroupIdx},'조장')
+        ]]>
+    </insert>
+    
+    <!-- 기존에 존재하는 스터디 그룹에 가입 신청을 하고 조장이 승인을 한 경우 조원으로 insert -->
+    <insert id="insertMember">
+        <![CDATA[
+        	INSERT INTO StudyMate.dbo.[User_StudyGroup] ([userIdx],[studyGroupIdx], [memberType])
+        	VALUES (#{userIdx}, #{studyGroupIdx},'조원')
+        ]]>
+    </insert>
+    
+    <!-- 내가 가입한 스터디 그룹 레코드 갯수 카운트 (조원입장) -->
+    <select id="selectCountMyStudyGroupForMember" resultType="int">
+        <![CDATA[
+  	    	SELECT COUNT(*)
+  	    	FROM StudyMate.dbo.[User_StudyGroup]
+  	    	WHERE userIdx = #{memberIdx} AND memberType = '조원'
+  	    ]]>
+    </select>
+    
+    
+     <!-- 내가 가입한 스터디 그룹 페이지네이션 (조원입장) [수정] TemporaryUser_StudyGroup 로 수정 //[유리방금추가]-->
+    <select id="selectPageMyStudyGroupListForMember" resultType="studyMate.dto.TemporaryUser_StudyGroup">
+        <![CDATA[
+    		SELECT studyGroupIdx, leaderName, studyGroupName, studyGroupGoal, studyGroupTerm,leaderIdx,(select route from [Image] where leaderIdx=userIdx) as route
+    		FROM
+    			( SELECT s.idx as studyGroupIdx, us.name as leaderName, s.studyGroupName as studyGroupName, s.studyGroupGoal as studyGroupGoal,s.leaderIdx as leaderIdx,
+    					 s.studyGroupTerm as studyGroupTerm, ROW_NUMBER() OVER (ORDER BY u.userIdx) 행번호
+    			  FROM (StudyMate.dbo.[StudyGroup] s JOIN StudyMate.dbo.[User_StudyGroup] u
+    			  ON s.idx = u.studyGroupIdx)
+    			  JOIN StudyMate.dbo.[User] us ON us.idx = s.leaderIdx
+    			  WHERE u.userIdx = #{memberIdx} AND u.memberType = '조원'
+    			) subquery
+    		WHERE
+    			   행번호 > (#{currentPage} - 1) * #{pageSize} AND 
+              	    행번호 <= #{currentPage} * #{pageSize}
+        	ORDER BY 행번호
+    	]]>
+    </select>
+</mapper>

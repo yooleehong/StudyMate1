@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.MassageMapper">
+
+    <select id="receiveSelectList" resultType="hashmap">
+        <![CDATA[
+			select m.idx as idx,userFrom,userTo,writeTime,text,loginId,name 
+			from (StudyMate.[dbo].[Message] m JOIN StudyMate.dbo.[User] u ON u.idx = m.userFrom) 
+			where userTo=#{idx} and ownership=#{idx}
+    	]]>
+    </select>
+    
+    <insert id="insert1" useGeneratedKeys="true" keyProperty="idx">
+        <![CDATA[
+			insert into [Message] (userFrom,userTo,writeTime,text,ownership) values(#{userFrom},#{userTo},GETDATE(),#{text},#{userFrom})
+    	]]>
+    </insert>
+    
+      <insert id="insert2" useGeneratedKeys="true" keyProperty="idx">
+        <![CDATA[
+			insert into [Message] (userFrom,userTo,writeTime,text,ownership) values(#{userFrom},#{userTo},GETDATE(),#{text},#{userTo})
+    	]]>
+    </insert>
+    
+    <delete id="delete" >
+        <![CDATA[
+			delete from [Message] where idx=#{idx};
+    	]]>
+    </delete>
+    
+      <select id="SendSelectList" resultType="hashmap">
+        <![CDATA[
+			select m.idx as idx,userFrom,userTo,writeTime,text,loginId,name 
+			from (StudyMate.[dbo].[Message] m JOIN StudyMate.dbo.[User] u ON u.idx = m.userTo) 
+			where userFrom=#{idx} and ownership=#{idx}
+    	]]>
+    </select>
+	
+	<select id="selectIdxMessage" resultType="studyMate.dto.Message">
+        <![CDATA[
+			select * from [Message] where idx=#{idx} and ownership=#{idx}
+    	]]>
+	</select>
+
+</mapper>
+
+<!-- public List<Message> receiveSelectList(int idx); 
+	
+	public void insert(int idx); 
+	
+	public void delete(int idx);
+	
+	public List<Message> SendSelectList(int idx);  -->
+
+
+
+
+
+
+

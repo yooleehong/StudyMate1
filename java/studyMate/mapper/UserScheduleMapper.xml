@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.UserScheduleMapper">
+
+    <select id="selectByIdx" resultType="studyMate.dto.UserSchedule">
+        <![CDATA[
+    		SELECT idx, title, start, [end] FROM StudyMate.dbo.[UserSchedule] WHERE [idx] = #{idx}
+    	]]>
+    </select>
+    
+    <select id="selectAll" resultType="studyMate.dto.UserSchedule">
+        <![CDATA[
+    		SELECT idx, title, start, [end] FROM StudyMate.dbo.[UserSchedule] WHERE [userIdx] = #{userIdx}
+    	]]>
+    </select>
+
+   
+    <insert id="insertUserSchedule" useGeneratedKeys="true" keyProperty="idx">
+        INSERT INTO StudyMate.dbo.[UserSchedule]
+        VALUES (#{start}, #{end}, #{title}, #{userIdx})
+    </insert>
+
+    
+
+    <delete id="deleteByIdx">
+        SET NOCOUNT ON;
+  		SET XACT_ABORT ON
+  			
+    	BEGIN TRANSACTION
+        DELETE FROM StudyMate.dbo.[UserSchedule] 
+        WHERE idx = #{idx}
+        
+        COMMIT TRANSACTION
+    </delete>
+
+</mapper>
+

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.StudyGroupMapper">
+
+    <select id="selectList" resultType="studyMate.dto.StudyGroup">
+        <![CDATA[
+			SELECT DISTINCT s.* FROM [StudyGroup] s, [User_StudyGroup] us, [User] u
+			WHERE (us.userIdx = #{userIdx}) and (us.studyGroupIdx = s.idx)
+    	]]>
+    </select>
+    <!-- [수정]TemporaryStudyGroup 로 변경 과 쿼리추가 //[유리방금추가]  -->
+    <select id="selectRecommendList" resultType="studyMate.dto.TemporaryStudyGroup">
+        <![CDATA[
+			SELECT TOP 20 u.name as leaderName, s.idx, s.studyGroupName, s.studyGroupIntro, s.studyGroupTerm, s.studyGroupGoal,s.leaderIdx,s.idx,(select route from [Image] where leaderIdx=userIdx) as route
+			FROM StudyMate.dbo.[User] u JOIN StudyMate.dbo.[StudyGroup] s ON u.idx = s.leaderIdx
+			ORDER BY NEWID()
+    	]]>
+    </select>
+    
+     <select id="selectStandByList" resultType="studyMate.dto.StudyGroup">
+        <![CDATA[
+			select *
+			from [StudyGroup] s
+			where s.idx in( select studyGroupIdx
+							from [ApplicationForm]
+							where userIdx=#{userIdx} and isAccept='대기')
+    	]]>
+    </select>
+    
+    <!-- 09_10 김승일 수정 : 조장의 이름을 출력하도록 함. -->
+    <select id="selectByStudyIdx" resultType="studyMate.dto.StudyGroup">
+        <![CDATA[
+			SELECT s.idx as idx, s.studyGroupName as studyGroupName, u.name as leaderName, s.maxCounter as maxCounter,
+					s.studyGroupTerm as studyGroupTerm, s.studyGroupGoal as studyGroupGoal, 
+					s.studyGroupContents as studyGroupContents 
+			FROM StudyMate.dbo.[StudyGroup] s JOIN StudyMate.dbo.[User] u ON s.leaderIdx = u.idx 
+			WHERE s.idx=#{studyIdx}
+    	]]>
+    </select>
+    
+     <insert id="insertApplication">
+     	INSERT INTO [ApplicationForm] ([userIdx], [studyGroupIdx], [reason], [isAccept]) 
+     	VALUES(#{userIdx}, #{studyGroupIdx}, #{reason}, '대기')
+    </insert>
+    
+    <select id="selectDoubleCheck" resultType="int">
+   	 	<![CDATA[
+			select COUNT(*)
+			from [ApplicationForm]
+			where userIdx=#{userIdx} and studyGroupIdx=#{studyGroupIdx} and (isAccept='대기' or isAccept='승인')
+    	]]>
+    </select>
+
+    
+    <insert id="insertStudyGroup" useGeneratedKeys="true" keyProperty="idx">
+        <![CDATA[
+        	INSERT INTO [StudyGroup] ([leaderIdx],[studyGroupName], [memberCounter], [maxCounter], [studyGroupIntro],[studyGroupTerm], [studyGroupGoal], [studyGroupContents])
+        	VALUES (#{leaderIdx}, #{studyGroupName}, 1, #{maxCounter}, #{studyGroupIntro}, #{studyGroupTerm}, #{studyGroupGoal}, #{studyGroupContents})
+        	
+        ]]>
+    </insert>
+    
+    <select id="studylistAll" resultType="studyMate.dto.StudyGroup">
+		<![CDATA[
+			SELECT idx,leaderId,studyGroupName,memberCounter,maxCounter,studyGroupIntro,studyGroupTerm,studyGroupGoal,studyGroupContents FROM [StudyGroup]
+		]]>
+	</select>
+	
+    <!-- 전체 레코드 갯수 카운트 || 조건에 맞는 레코드 갯수 카운트 -->
+    <select id="selectCountStudyGroup" resultType="int">
+        <![CDATA[
+  	    	SELECT COUNT(*)
+  	    	FROM StudyMate.dbo.[StudyGroup]
+  	    	WHERE 
+  	    		 (#{srchType} = 0) OR
+  	    		 (#{srchType} = 1 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, [studyGroupName]) > 0) OR
+  	    		 (#{srchType} = 2 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, [studyGroupIntro]) > 0) OR
+  	    		 (#{srchType} = 3 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, [studyGroupGoal]) > 0 )
+  	    ]]>
+    </select>
+    
+    <!-- studyGroup 목록출력 (검색가능) [수정]TemporaryStudyGroup 로 변경 과 쿼리추가 //[유리방금추가]-->
+    <select id="selectPageStudyGroupList" resultType="studyMate.dto.TemporaryStudyGroup">
+        <![CDATA[
+        	SELECT idx, myName, studyGroupName, studyGroupIntro,leaderIdx, studyGroupTerm,(select route from [Image] where leaderIdx=userIdx) as route
+        	FROM
+        		(SELECT s.idx as idx, u.name as myName,s.leaderIdx as leaderIdx, s.studyGroupName as studyGroupName, s.studyGroupIntro as studyGroupIntro, s.studyGroupTerm as studyGroupTerm, 
+        			CASE #{order}
+        				WHEN 0 THEN ROW_NUMBER() OVER (ORDER BY s.idx)
+        				WHEN 1 THEN ROW_NUMBER() OVER (ORDER BY s.studyGroupName)
+        			END recordNo
+        		FROM (StudyMate.dbo.[User] u JOIN StudyMate.dbo.[StudyGroup] s ON u.idx = s.leaderIdx)
+        		WHERE
+        			((#{srchType} = 0) OR
+            		(#{srchType} = 1 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, s.studyGroupName) = 1) OR
+            		(#{srchType} = 2 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, s.studyGroupIntro) = 1) OR
+            		(#{srchType} = 3 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, s.studyGroupGoal) = 1) 
+            		
+            	)) subquery
+            WHERE recordNo > (#{currentPage} - 1 ) * #{pageSize} AND
+            	  recordNo <= #{currentPage} * #{pageSize}
+            ORDER BY recordNo
+        	
+        ]]>
+    </select>
+    
+    <!-- 내가 만든 스터디 그룹 레코드 갯수 카운트 (조장입장) -->
+    <select id="selectCountMyStudyGroupForLeader" resultType="int">
+        <![CDATA[
+  	    	SELECT COUNT(*)
+  	    	FROM StudyMate.dbo.[StudyGroup]
+  	    	WHERE leaderIdx = #{leaderIdx}
+  	    ]]>
+    </select>
+    
+    <!-- 내가 만든 스터디 그룹 페이지네이션 (조장입장) [수정]TemporaryStudyGroup 로 변경 과 쿼리추가 -->
+    <select id="selectPageMyStudyGroupListForLeader" resultType="studyMate.dto.TemporaryStudyGroup">
+        <![CDATA[
+    		SELECT idx, studyGroupName, leaderIdx, studyGroupIntro, studyGroupTerm,(select route from [Image] where leaderIdx=userIdx) as route
+    		FROM
+    			( SELECT idx as idx, studyGroupName as studyGroupName, leaderIdx as leaderIdx,
+    					 studyGroupIntro as studyGroupIntro, studyGroupTerm as studyGroupTerm, ROW_NUMBER() OVER (ORDER BY idx) 행번호
+    			  FROM StudyMate.dbo.[StudyGroup]
+    			  WHERE leaderIdx = #{leaderIdx}
+    			) subquery
+    		WHERE
+    			   행번호 > (#{currentPage} - 1) * #{pageSize} AND 
+              	    행번호 <= #{currentPage} * #{pageSize}
+        	ORDER BY 행번호
+    	]]>
+    </select>
+    
+</mapper>

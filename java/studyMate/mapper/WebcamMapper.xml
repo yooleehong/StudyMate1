@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="studyMate.mapper.WebcamMapper">
+
+   <insert id="webcamInsert"> <!-- 캠방 삽입 코드 -->
+      insert into [WebcamBoard](title,userIdx,studyGroupIdx,uploadTime)
+      values(#{title},#{userIdx},#{studyGroupIdx},GETDATE())
+   </insert>
+
+   <!-- 열린캠방목록 -->
+   <select id="webcamPage" resultType="studyMate.dto.WebcamBoard">
+      
+    <![CDATA[
+           SELECT idx,title,userIdx,studyGroupIdx,uploadTime,(select loginId from StudyMate.[dbo].[User] where idx=userIdx)as userId 
+           FROM
+              (SELECT idx,title,userIdx,studyGroupIdx,uploadTime, ROW_NUMBER() 
+            OVER (ORDER BY idx DESC) 행번호
+                 FROM [WebcamBoard]
+              WHERE
+                 ((#{srchType} = 0 AND studyGroupIdx=#{idx}) OR
+                  (#{srchType} = 1 AND CHARINDEX(#{srchText}, idx) = 1 AND studyGroupIdx=#{idx}) OR
+                  (#{srchType} = 2 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, title) = 1 AND studyGroupIdx=#{idx})
+                  
+               )) subquery
+        WHERE 행번호 > (#{currentPage} - 1) * #{pageSize} AND 행번호 <= #{currentPage} * #{pageSize} ORDER BY 행번호 
+           
+        ]]>
+
+
+   </select>
+   <!-- 열린캠방 갯수 -->
+   <select id="webcamCount" resultType="int">
+         
+       <![CDATA[
+            SELECT COUNT(*) FROM [Stream]
+            WHERE 
+                (#{srchType} = 0 AND studyGroupIdx=#{idx}) OR
+                (#{srchType} = 1 AND CHARINDEX(#{srchText},idx) = 1 AND studyGroupIdx=#{idx}) OR
+                (#{srchType} = 2 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, title ) > 0 AND studyGroupIdx=#{idx})
+         ]]>
+
+   </select>
+   <!-- idx에 맞는 캠방조회 -->
+   <select id="webcamSelect" resultType="studyMate.dto.WebcamBoard">
+         
+       <![CDATA[
+            SELECT idx,title,userIdx,studyGroupIdx,uploadTime,(select loginId from StudyMate.[dbo].[User] where idx=userIdx)as userId  FROM [WebcamBoard] where idx=#{idx}
+
+         ]]>
+
+   </select>
+   <!-- idx에 맞는 캠방삭제 -->
+   <delete id="webcamDelete">
+      DELETE FROM [WebcamBoard] WHERE idx = #{idx}
+   </delete>
+
+
+
+</mapper>

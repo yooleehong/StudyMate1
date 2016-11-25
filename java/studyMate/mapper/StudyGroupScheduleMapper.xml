@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.StudyGroupScheduleMapper">
+
+    <select id="selectAll" resultType="studyMate.dto.StudyGroupSchedule">
+        <![CDATA[
+    		SELECT idx, title, start, [end] FROM StudyMate.dbo.[StudyGroupSchedule] WHERE [studyGroupIdx] = #{studyGroupIdx}
+    	]]>
+    </select><!--[수정]studyGroupIdx from 전에 있던거 삭제 -->
+
+   
+    <insert id="insert" useGeneratedKeys="true" keyProperty="idx">
+        INSERT INTO StudyMate.dbo.[StudyGroupSchedule]
+        VALUES (#{start}, #{end}, #{title},#{studyGroupIdx})
+    </insert><!-- [수정]15를 #{studyGroupIdx} 로 변경-->
+
+    
+
+    <delete id="delete">
+        SET NOCOUNT ON;
+  		SET XACT_ABORT ON
+  			
+    	BEGIN TRANSACTION
+        DELETE FROM [StudyGroupSchedule] 
+        WHERE idx = #{idx}
+        
+        COMMIT TRANSACTION
+    </delete><!-- [수정]WHERE studyGroupIdx = #{studyGroupIdx} 를 WHERE idx = #{idx}로 변경-->
+
+</mapper>
+

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="studyMate.mapper.BoardMapper">
+   <insert id="insertBoard" useGeneratedKeys="true" keyProperty="id">
+       <![CDATA[
+        INSERT INTO [StudyGroupBoard] ([studyGroupIdx],[userIdx], [boardTitle], [boardContents], [writeTime]) 
+        VALUES (#{studyGroupIdx}, #{userIdx}, #{boardTitle}, #{boardContents}, GetDate())
+        ]]>
+   </insert>
+   
+   <select id="read" resultType="studyMate.dto.StudyGroupBoard">
+      <![CDATA[
+      SELECT idx, studyGroupIdx, userIdx, boardTitle, boardContents FROM [StudyGroupBoard] WHERE idx=#{boardIdx}
+      ]]>
+   </select>
+   
+   
+   <!-- 그룹별 게시판 글 갯수 카운트 -->
+   <select id="selectCountStudyGroupBoard" resultType="int">
+        <![CDATA[
+            SELECT COUNT(*)      
+            FROM (StudyMate.[dbo].[StudyGroupBoard] s JOIN StudyMate.dbo.[User] u ON s.userIdx = u.idx)
+            WHERE 
+                (#{srchType} = 0 AND s.studyGroupIdx=#{idx}) OR
+                (#{srchType} = 1 AND CHARINDEX(#{srchText},s.boardTitle) > 0 AND s.studyGroupIdx=#{idx}) OR
+                 (#{srchType} = 2 AND CHARINDEX(#{srchText},u.name) > 0 AND s.studyGroupIdx=#{idx})
+         ]]>
+    </select>
+    
+   
+   <!-- 스터디 그룹 게시판 글 페이지네이션. (작성자 검색, 제목검색, 내용검색 가능) 09.19 김승일 추가-->
+   <select id="selectPageStudyGroupBoard" resultType="studyMate.dto.StudyGroupBoard">
+      <![CDATA[
+           SELECT idx, boardTitle, boardContents, writeTime, name
+           FROM
+              (SELECT s.idx as idx, s.boardTitle as boardTitle, s.boardContents as boardContents,
+                       s.writeTime as writeTime, u.name as name, 
+                       ROW_NUMBER() OVER (ORDER BY s.idx DESC) recordNo                 
+              FROM (StudyMate.dbo.[StudyGroupBoard] s LEFT JOIN StudyMate.dbo.[User] u ON s.userIdx = u.idx )
+              WHERE 
+                     (#{srchType} = 0 AND s.studyGroupIdx=#{idx}) OR
+                      (#{srchType} = 1 AND CHARINDEX(#{srchText},s.boardTitle) > 0 AND s.studyGroupIdx=#{idx}) OR
+                      (#{srchType} = 2 AND CHARINDEX(#{srchText},u.name) > 0 AND s.studyGroupIdx=#{idx})
+                 ) subquery
+            WHERE recordNo > (#{currentPage} - 1 ) * #{pageSize} AND
+                 recordNo <= #{currentPage} * #{pageSize}
+            ORDER BY recordNo
+           
+        ]]>
+   </select>
+   
+    <update id="update">
+        UPDATE [StudyGroupBoard] 
+        SET boardTitle = #{boardTitle}, 
+           boardContents = #{boardContents}, 
+           writeTime = GetDate() 
+           WHERE idx = #{idx}
+    </update>
+   
+   <delete id="delete">
+        DELETE FROM [StudyGroupBoard] WHERE idx = #{idx}
+    </delete>
+    
+    
+    
+    
+    <select id="commentListAll" resultType="studyMate.dto.Comment">
+       <![CDATA[
+          select DISTINCT c.*, u.loginId as userId
+         from [Comment] c, [User] u
+         where (c.studyGroupBoardIdx =#{studyGroupBoardIdx}) and (c.userIdx=u.idx)
+      ]]>
+    </select>
+   
+   <insert id="insertComent" parameterType="studyMate.dto.Comment" useGeneratedKeys="true" keyProperty="id">
+       insert into [Comment] (studyGroupBoardIdx, userIdx, writeTime, commentContents)
+      values (#{studyGroupBoardIdx}, #{userIdx}, #{writeTime}, #{commentContents})
+      
+      <selectKey keyProperty="idx" resultType="Integer" order="AFTER">
+           SELECT IDENT_CURRENT('Comment')
+       </selectKey>   
+       
+   </insert>
+
+   <update id="updateComment">
+      UPDATE [Comment] 
+      SET writeTime=SYSDATETIME(), commentContents=#{commentContents}
+      WHERE idx=#{idx}
+   </update>
+
+   <delete id="deleteComment">
+        delete from [Comment] where idx=#{idx}
+    </delete>
+    
+    
+    <select id="replyListAll" resultType="studyMate.dto.ReplyComment">
+      <![CDATA[
+          select DISTINCT r.*, u.loginId as userId
+         from [Comment] c, [ReplyComment] r, [User] u
+         where (c.studyGroupBoardIdx=#{studyGroupBoardIdx}) and (c.idx=r.commentIdx) and (r.userIdx=u.idx)
+      ]]>
+    </select>
+    
+    
+    <insert id="insertReply" parameterType="studyMate.dto.ReplyComment" useGeneratedKeys="true" keyProperty="id">
+       insert into [ReplyComment] (commentIdx, userIdx, writeTime, commentContents, studyGroupBoardIdx)
+      values (#{commentIdx}, #{userIdx}, SYSDATETIME(),#{commentContents},#{studyGroupBoardIdx})
+       
+       <selectKey keyProperty="idx" resultType="Integer" order="AFTER">
+           SELECT IDENT_CURRENT('ReplyComment')
+       </selectKey>
+       
+    </insert>
+    
+    <update id="updateReply">
+       update [ReplyComment] 
+       set writeTime=SYSDATETIME(), commentContents=#{commentContents}
+      where idx=#{idx}
+    </update>
+
+   <delete id="deleteReply">
+        delete from [ReplyComment] where idx=#{idx}
+    </delete>
+    
+    <delete id="deleteReplyByComment">
+       delete from [ReplyComment] where commentIdx=#{commentIdx}
+   </delete>
+   
+   
+   
+   <select id="selectContents" resultType="String">
+   		select commentContents from Comment where idx=#{commentIdx}
+   </select>
+   
+   <select id="selectReplyContents" resultType="String">
+   		select commentContents from ReplyComment where idx=#{replyIdx}
+   </select>
+    
+    
+    <!-- 게시글별 댓글 갯수 카운트 -->
+    <select id="selectCountComment" resultType="int">
+    	<![CDATA[
+    		SELECT COUNT(*)
+			FROM [Comment]
+			WHERE studyGroupBoardIdx = #{studyGroupBoardIdx}
+    	]]>
+    </select>
+    
+    <!--게시글별 댓글 페이지네이션 -->
+    <select id="commentPageListAll" resultType="studyMate.dto.Comment">
+	    <![CDATA[
+	    	select * 
+			from
+			(select *, ROW_NUMBER() OVER (ORDER BY idx DESC) recordNo 
+			from [Comment]
+			where studyGroupBoardIdx=#{studyGroupBoardIdx}
+			) subquery
+			where recordNo > (#{currentPage} - 1 ) * 10 and
+			recordNo <= #{currentPage} * #{pageSize}
+			order by recordNo
+	    ]]>
+    </select>
+
+</mapper>
+
+
+
+
+
+

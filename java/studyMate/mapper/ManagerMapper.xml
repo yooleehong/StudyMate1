@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="studyMate.mapper.ManagerMapper">
+
+
+    <delete id="managerDeleteByIdx">
+        DELETE FROM [User] WHERE idx = #{idx}
+    </delete>
+    
+    
+    <select id="managerSelectPage" resultType="studyMate.dto.User">
+     <![CDATA[ SELECT * FROM 
+    ( SELECT idx, name,loginId,email,password,phoneNumber,userType, ROW_NUMBER() 
+    OVER (ORDER BY name DESC) 행번호 FROM [User]
+    WHERE (#{srchType} = 0) 
+    OR (#{srchType} = 1 AND CHARINDEX(#{srchText}, idx) = 1) 
+    OR (#{srchType} = 2 AND CHARINDEX(#{srchText}, loginid) = 1) 
+    OR (#{srchType} = 3 AND CHARINDEX(#{srchText}, name) = 1) ) subquery
+    WHERE 행번호 > (#{currentPage} - 1) * #{pageSize} AND 행번호 <= #{currentPage} * #{pageSize} ORDER BY 행번호
+      ]]>
+   </select>
+   
+   <select id="managerSelectCount" resultType="int"> 
+   SELECT COUNT(*) FROM [User]
+   WHERE (#{srchType} = 0) 
+   OR (#{srchType} = 1 AND CHARINDEX(#{srchText}, idx) = 1) 
+   OR (#{srchType} = 2 AND CHARINDEX(#{srchText}, loginid) = 1) 
+   OR (#{srchType} = 3 AND CHARINDEX(#{srchText}, name) = 1) 
+   OR (#{srchType} = 4 AND #{srchText} = userType)
+    </select>
+
+    <select id="managerSelectCountStudyGroup" resultType="int">
+        <![CDATA[
+            SELECT COUNT(*) FROM [StudyGroup]
+            WHERE (#{srchType} = 0) 
+                OR (#{srchType} = 1 
+                AND CHARINDEX(#{srchText}, idx) =1)
+                OR (#{srchType} = 2 
+                AND CHARINDEX(#{srchText}, leaderIdx)=1)
+                OR (#{srchType} = 3 
+                AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, [studyGroupName]) > 0 )
+         ]]>
+
+                     
+    </select>
+    
+    <select id="managerSelectPageStudyGroupList" resultType="studyMate.dto.StudyGroup">
+    
+         <![CDATA[ SELECT * FROM 
+    ( SELECT s.idx as idx,u.name as leaderName,s.leaderIdx as leaderIdx,s.studyGroupName as studyGroupName,s.memberCounter as memberCounter,s.maxCounter as maxCounter,s.studyGroupIntro as studyGroupIntro,s.studyGroupGoal as studyGroupGoal,s.studyGroupContents as studyGroupContents,
+    CASE #{order}
+                    WHEN 0 THEN ROW_NUMBER() OVER (ORDER BY s.idx)
+                    WHEN 1 THEN ROW_NUMBER() OVER (ORDER BY s.studyGroupName)
+                 END recordNo FROM (StudyMate.dbo.[User] u JOIN StudyMate.dbo.[StudyGroup] s ON u.idx = s.leaderIdx )
+    WHERE (#{srchType} = 0) 
+    OR (#{srchType} = 1 AND CHARINDEX(#{srchText}, s.idx) = 1) 
+    OR (#{srchType} = 2 AND CHARINDEX(#{srchText}, s.leaderIdx) = 1) 
+    OR (#{srchType} = 3 AND CHARINDEX(#{srchText}, s.studyGroupName) = 1) ) subquery
+     WHERE recordNo > (#{currentPage} - 1 ) * #{pageSize} AND
+                 recordNo <= #{currentPage} * #{pageSize}
+            ORDER BY recordNo
+      ]]>
+        
+        </select>
+
+    <select id="managerSelectCountStudyGroupBoard" resultType="int">
+        <![CDATA[
+            SELECT COUNT(*) FROM [StudyGroupBoard]
+            WHERE 
+            (#{srchType} = 0 AND studyGroupIdx=#{idx}) 
+                OR (#{srchType} = 1 AND CHARINDEX(#{srchText}, idx) =1 AND studyGroupIdx=#{idx})
+                OR (#{srchType} = 2 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, boardTitle) > 0  AND studyGroupIdx=#{idx})
+                OR (#{srchType} = 3 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, [boardContents]) > 0 AND studyGroupIdx=#{idx})
+                 
+         ]]>
+
+                     
+    </select>
+
+    <select id="managerSelectPageStudyGroupBoardList" resultType="studyMate.dto.StudyGroupBoard">
+    
+         <![CDATA[ SELECT * FROM 
+    ( SELECT idx,studyGroupIdx,userIdx,boardTitle,boardContents,writeTime, ROW_NUMBER() 
+    OVER (ORDER BY idx DESC) 행번호 FROM [StudyGroupBoard]
+    WHERE (#{srchType} = 0 AND studyGroupIdx=#{idx}) 
+    OR (#{srchType} = 1 AND CHARINDEX(#{srchText}, idx) = 1 AND studyGroupIdx=#{idx}) 
+    OR (#{srchType} = 2 AND CHARINDEX(#{srchText}, boardTitle) = 1 AND studyGroupIdx=#{idx}) 
+    OR (#{srchType} = 3 AND CHARINDEX(#{srchText}, boardContents) = 1) AND studyGroupIdx=#{idx}) subquery
+    WHERE 행번호 > (#{currentPage} - 1) * #{pageSize} AND 행번호 <= #{currentPage} * #{pageSize} ORDER BY 행번호  
+
+      ]]>
+        
+        </select>
+        <!-- Mapper [수정]-->
+         <select id="managerSelectByStudyIdx" resultType="studyMate.dto.StudyGroup">
+        <![CDATA[
+         SELECT idx, leaderIdx, studyGroupName, memberCounter, maxCounter, studyGroupIntro, studyGroupTerm, studyGroupGoal, studyGroupContents ,
+         (select name from [User] where leaderIdx=idx) as leaderName
+          FROM [StudyGroup] WHERE idx=#{studyIdx} 
+       ]]>
+          </select>
+        
+         <delete id="managerDeleteGroup">
+       
+        DELETE FROM [StudyGroup] WHERE idx = #{idx}
+       
+    </delete>
+    
+        <delete id="managerDeleteGroupOneBoard">
+       
+        DELETE FROM [StudyGroupBoard] WHERE idx = #{idx}
+       
+    </delete>
+    
+      <delete id="managerDeleteGroupBoard">
+       
+        DELETE FROM [StudyGroupBoard] WHERE studyGroupIdx = #{idx}
+       
+    </delete>
+    <!-- [추가] 댓글보여주는 Mapper  -->
+        <select id="managerCommentsPage" resultType="studyMate.dto.TemporaryComments">
+        <![CDATA[
+        SELECT * FROM 
+    ( SELECT (select loginId from StudyMate.[dbo].[User] where idx=c.userIdx) as userId, 
+    c.idx,c.studyGroupBoardIdx,c.userIdx,c.writeTime,c.commentContents,r.userIdx as repleUserIdx,r.writeTime as repleWriteTime,r.commentContents as repleCommentContents ,
+       CASE #{order}
+           WHEN 0 THEN ROW_NUMBER() OVER (ORDER BY c.idx)
+           WHEN 1 THEN ROW_NUMBER() OVER (ORDER BY c.userIdx)
+           WHEN 2 THEN ROW_NUMBER() OVER (ORDER BY r.userIdx)
+           WHEN 3 THEN ROW_NUMBER() OVER (ORDER BY c.commentContents)
+           WHEN 4 THEN ROW_NUMBER() OVER (ORDER BY r.commentContents)
+        END recordNo
+     FROM (StudyMate.dbo.[Comment] c JOIN StudyMate.dbo.[ReplyComment] r ON c.idx = r.commentIdx)
+    WHERE 
+       ((#{srchType} = 0 AND c.studyGroupBoardIdx=#{idx}) OR
+                  (#{srchType} = 1 AND CHARINDEX(#{srchText}, c.userIdx) =1 AND c.studyGroupBoardIdx=#{idx}) OR
+                  (#{srchType} = 2 AND CHARINDEX(#{srchText}, r.userIdx) =1 AND c.studyGroupBoardIdx=#{idx}) OR
+                  (#{srchType} = 3 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, c.commentContents) = 1 and c.studyGroupBoardIdx=#{idx}) OR
+                  (#{srchType} = 4 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, r.commentContents) = 1 and c.studyGroupBoardIdx=#{idx})
+                  
+                  )) subquery
+     WHERE recordNo > (#{currentPage} - 1 ) * #{pageSize} AND
+                 recordNo <= #{currentPage} * #{pageSize}
+            ORDER BY recordNo
+
+       ]]>
+          </select> 
+          
+          <!-- [추가] 댓글 CountMapper  -->
+             <select id="managerCommentsCount" resultType="int">
+        <![CDATA[
+        
+        SELECT COUNT(*) FROM [Comment] c, [ReplyComment] r 
+      WHERE 
+         (#{srchType} = 0 AND r.commentIdx=c.idx and c.studyGroupBoardIdx=#{idx}) 
+             OR (#{srchType} = 1 AND CHARINDEX(#{srchText}, c.userIdx) =1 AND r.commentIdx=c.idx and c.studyGroupBoardIdx=#{idx})
+             OR (#{srchType} = 2 AND CHARINDEX(#{srchText}, r.userIdx) =1 AND r.commentIdx=c.idx and c.studyGroupBoardIdx=#{idx})
+             OR (#{srchType} = 3 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, c.commentContents) > 0  AND r.commentIdx=c.idx and c.studyGroupBoardIdx=#{idx})
+             OR (#{srchType} = 4 AND CHARINDEX(#{srchText, jdbcType=VARCHAR}, r.commentContents) > 0 AND r.commentIdx=c.idx and c.studyGroupBoardIdx=#{idx})
+      
+       ]]>
+          </select> 
+          
+           <!--[추가]유저 idx 로 유저 비번 업뎃-->
+         <update id="managerPwUpdate">         
+             UPDATE [User] 
+             SET password=#{password} 
+             where idx=#{idx}
+         </update>
+         
+         
+         <!--[추가]유저 idx 로 유저 이메일 업뎃-->
+           <update id="managerEmailUpdate">      
+             UPDATE [User] 
+             SET email=#{email} 
+             where idx=#{idx}
+         </update>  
+          
+    
+    
+</mapper>
